@@ -48,3 +48,19 @@ export const deleteResumeHistoryApi=async(id)=>{
     }
     return await commonApi(`${base_url}/delete-resume/${id}`,'DELETE',{},header)
 }
+
+//Add skill [ADMIN]
+export const addSkillsApi=async(data)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/add-skill`,'POST',data,header)
+}
+
+//Add job [ADMIN]
+export const addJobsApi=async(data)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/add-job`,'POST',data,header)
+}

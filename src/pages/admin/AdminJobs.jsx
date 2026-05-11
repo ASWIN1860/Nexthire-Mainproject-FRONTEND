@@ -9,7 +9,6 @@ const initialJobs = [
 
 const AdminJobs = () => {
   const [jobs] = useState(initialJobs);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -21,20 +20,13 @@ const AdminJobs = () => {
         
         <div className="flex gap-3">
           <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"/>
             <input 
               type="text" 
               placeholder="Search jobs..." 
               className="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 w-64"
             />
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Post New Job
-          </button>
         </div>
       </div>
 
@@ -89,41 +81,6 @@ const AdminJobs = () => {
         ))}
       </div>
 
-      {/* Mock Modal for adding new job limits code depth but gives correct structure */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="glass-panel w-full max-w-lg p-6 rounded-3xl animate-[fadeIn_0.3s_ease-out]">
-            <h2 className="text-xl font-bold text-slate-100 mb-4">Post a New Job</h2>
-            <div className="space-y-4">
-              <div>
-                 <label className="text-sm text-slate-400 mb-1 block">Job Title</label>
-                 <input type="text" className="input-field" placeholder="e.g. Frontend Engineer" />
-              </div>
-              <div>
-                 <label className="text-sm text-slate-400 mb-1 block">Company</label>
-                 <input type="text" className="input-field" placeholder="e.g. Acme Corp" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="text-sm text-slate-400 mb-1 block">Type</label>
-                   <select className="input-field py-3">
-                     <option>Full-time</option>
-                     <option>Contract</option>
-                   </select>
-                 </div>
-                 <div>
-                   <label className="text-sm text-slate-400 mb-1 block">Location</label>
-                   <input type="text" className="input-field" placeholder="e.g. Remote" />
-                 </div>
-              </div>
-              <div className="pt-4 flex gap-3 justify-end">
-                <button onClick={() => setIsModalOpen(false)} className="btn-secondary">Cancel</button>
-                <button onClick={() => setIsModalOpen(false)} className="btn-primary">Post Job</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

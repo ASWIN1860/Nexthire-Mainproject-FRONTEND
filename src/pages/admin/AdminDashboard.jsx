@@ -2,7 +2,8 @@
 import { motion } from 'framer-motion';
 import { Users, FileText, CheckCircle2, Building, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
+import AddSkill from '../../components/admin/AddSkill';
+import AddJob from '../../components/admin/AddJob';
 const data = [
   { name: 'Mon', signups: 400, uploads: 240 },
   { name: 'Tue', signups: 300, uploads: 1398 },
@@ -78,6 +79,11 @@ const AdminDashboard = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <AddSkill />
+        <AddJob />
       </div>
     </div>
   );
