@@ -7,50 +7,37 @@ import { addJobsApi } from "../../services/allApis";
 
 const AddJob = () => {
   const [title, setTitle] = useState("");
-
   const [company, setCompany] = useState("");
-
   const [location, setLocation] = useState("");
-
   const [salary, setSalary] = useState("");
-
   const [description, setDescription] = useState("");
-
   const [skills, setSkills] = useState([]);
-
+  const [status, setStatus] = useState("Active"); // Added status state with default value
   const [allSkills, setAllSkills] = useState([]);
 
-
   const handleAddJob = async () => {
-    
-
     if (
       !title ||
       !company ||
       !location ||
       !salary ||
       !description ||
-      skills.length === 0
+      skills.length === 0 ||
+      !status // Added status validation
     ) {
       toast.warning("Please fill all fields");
-
       return;
     }
 
     try {
-
       const body = {
         title,
-
         company,
-
         location,
-
         salary,
-
         description,
-
         skills,
+        status, // Added status to body
       };
 
       const result = await addJobsApi(body);
@@ -59,22 +46,16 @@ const AddJob = () => {
 
       if (result.status === 200) {
         toast.success("Job added successfully");
-
         setTitle("");
-
         setCompany("");
-
         setLocation("");
-
         setSalary("");
-
         setDescription("");
-
         setSkills([]);
+        setStatus("Active"); // Reset to default
       }
     } catch (err) {
       console.log(err);
-
       toast.error("Failed to add job");
     }
   };
@@ -106,7 +87,7 @@ const AddJob = () => {
               type="text"
               className="input-field"
               placeholder="e.g. Senior Developer"
-              onChange={(e)=>{setTitle(e.target.value)}}
+              onChange={(e) => { setTitle(e.target.value) }}
               value={title}
             />
           </div>
@@ -116,7 +97,7 @@ const AddJob = () => {
               type="text"
               className="input-field"
               placeholder="e.g. Tech Corp"
-              onChange={(e)=>{setCompany(e.target.value)}}
+              onChange={(e) => { setCompany(e.target.value) }}
               value={company}
             />
           </div>
@@ -131,7 +112,7 @@ const AddJob = () => {
               type="text"
               className="input-field"
               placeholder="e.g. Remote / New York"
-              onChange={(e)=>{setLocation(e.target.value)}}
+              onChange={(e) => { setLocation(e.target.value) }}
               value={location}
             />
           </div>
@@ -141,23 +122,37 @@ const AddJob = () => {
               type="text"
               className="input-field"
               placeholder="e.g. $100,000 - $150,000"
-              onChange={(e)=>{setSalary(e.target.value)}}
+              onChange={(e) => { setSalary(e.target.value) }}
               value={salary}
             />
           </div>
         </div>
 
-        <div>
-          <label className="text-sm text-slate-400 mb-1 block">
-            Required Skills
-          </label>
-          <input
-            type="text"
-            className="input-field"
-            placeholder="e.g. React, Node.js, MongoDB (comma separated)"
-            onChange={(e)=>{setSkills(e.target.value)}}
-            value={skills}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-slate-400 mb-1 block">
+              Required Skills
+            </label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="e.g. React, Node.js, MongoDB (comma separated)"
+              onChange={(e) => { setSkills(e.target.value) }}
+              value={skills}
+            />
+          </div>
+          {/* Status field added here */}
+          <div>
+            <label className="text-sm text-slate-400 mb-1 block">Status</label>
+            <select
+              className="input-field appearance-none cursor-pointer"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="Active">Active</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
         </div>
 
         <div>
@@ -167,7 +162,7 @@ const AddJob = () => {
           <textarea
             className="input-field min-h-[100px] resize-y"
             placeholder="Describe the role, responsibilities, and requirements..."
-            onChange={(e)=>{setDescription(e.target.value)}}
+            onChange={(e) => { setDescription(e.target.value) }}
             value={description}
           ></textarea>
         </div>

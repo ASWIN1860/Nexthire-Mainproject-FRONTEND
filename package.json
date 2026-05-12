@@ -13,6 +13,7 @@
     "@react-oauth/google": "^0.13.5",
     "axios": "^1.15.2",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "highcharts": "^12.6.0",
     "highcharts-react-official": "^3.2.3",

@@ -129,7 +129,7 @@ const ResumeResult = () => {
       // --- 4. MATCHED SKILLS ---
       doc.setFontSize(14);
       doc.setTextColor(30, 41, 59);
-      doc.text("Matched Skills", margin, currentY);
+      doc.text("Your Resume Parsed Skills", margin, currentY);
 
       currentY += 8;
       let skillX = margin;

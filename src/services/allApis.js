@@ -26,11 +26,11 @@ export const uploadResumeApi=async(data)=>{
 }
 
 //getLatest ResumeData
-export const getLatestResumeApi=async()=>{
+export const getLatestResumeApi=async(id)=>{
     const header={
         "Authorization": `Bearer ${sessionStorage.getItem('token')}`
     }
-    return await commonApi(`${base_url}/latest-resume`,'GET',{},header)
+    return await commonApi(`${base_url}/latest-resume/${id}`,'GET',{},header)
 }
 
 //get resume history
@@ -49,6 +49,7 @@ export const deleteResumeHistoryApi=async(id)=>{
     return await commonApi(`${base_url}/delete-resume/${id}`,'DELETE',{},header)
 }
 
+
 //Add skill [ADMIN]
 export const addSkillsApi=async(data)=>{
     const header={
@@ -63,4 +64,60 @@ export const addJobsApi=async(data)=>{
         "Authorization": `Bearer ${sessionStorage.getItem('token')}`
     }
     return await commonApi(`${base_url}/add-job`,'POST',data,header)
+}
+
+//Get all jobs [ADMIN]
+export const getAllJobsApi=async()=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/all-jobs`,'GET',{},header)
+}
+
+//delete jobs [ADMIN]
+export const deleteJobApi=async(id)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/delete-job/${id}`,'DELETE',id,header)
+}
+
+//update jobs [ADMIN]
+export const updateJobApi=async(id,body)=>{
+     const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/update-job/${id}`,'PUT',body,header)
+}
+
+//get all users [ADMIN]
+export const getAllUsersApi=async()=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/all-users`,'GET',"",header)
+}
+
+//get resume by id [ADMIN]
+export const getResumeByUserIdApi=async(id)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/resume/${id}`,'GET',id,header)
+}
+
+//edit user [ADMIN]
+export const editUserApi=async(id,body)=>{
+     const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/edit-user/${id}`,'PUT',body,header)
+}
+
+//delete user 
+export const deleteUserApi=async(id)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/delete-user/${id}`,'DELETE',id,header)
 }
