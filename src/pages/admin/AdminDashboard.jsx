@@ -8,30 +8,15 @@ import {
   Building,
   TrendingUp,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import Highcharts from "highcharts";
+import HighchartsReact from "highcharts-react-official";
 
 import AddSkill from "../../components/admin/AddSkill";
 import AddJob from "../../components/admin/AddJob";
 
-import { getAllUsersApi } from "../../services/allApis";
+import { getAllResumeApi, getAllUsersApi,getAllJobsApi,getAllApplicationsApi } from "../../services/allApis";
 
-const data = [
-  { name: "Mon", signups: 400, uploads: 240 },
-  { name: "Tue", signups: 300, uploads: 1398 },
-  { name: "Wed", signups: 200, uploads: 9800 },
-  { name: "Thu", signups: 278, uploads: 3908 },
-  { name: "Fri", signups: 189, uploads: 4800 },
-  { name: "Sat", signups: 239, uploads: 3800 },
-  { name: "Sun", signups: 349, uploads: 4300 },
-];
+// Chart data will be calculated dynamically
 
 const StatCardAdmin = ({ icon: Icon, title, value, subValue, colorClass }) => (
   <motion.div whileHover={{ y: -5 }} className="glass-card p-6">
@@ -54,20 +39,151 @@ const StatCardAdmin = ({ icon: Icon, title, value, subValue, colorClass }) => (
 
 const AdminDashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
+  const [totalResumes,setTotalResumes]=useState(0)
+  const [totalJobs,setTotalJobs]=useState(0)
+  const [totalApplications,setTotalApplications]=useState(0)
 
-  useEffect(() => {
-    getUsersCount()
-  },[]);
+  const [usersData, setUsersData] = useState([]);
+  const [resumesData, setResumesData] = useState([]);
+
+  const getTotalApplications=async()=>{
+    try{
+      const result=await getAllApplicationsApi()
+      if(result.status===200){
+        setTotalApplications(result.data.length)
+      }
+    }
+    catch(err){
+      console.log(err)
+    }
+  }
 
   const getUsersCount = async () => {
     try {
       const result = await getAllUsersApi();
       if (result.status === 200) {
         setTotalUsers(result.data.length);
+        setUsersData(result.data);
       }
     } catch (err) {
       console.log(err);
     }
+  };
+
+  const getTotalResumes=async()=>{
+    try{
+      const result=await getAllResumeApi()
+      if(result.status===200){
+        setTotalResumes(result.data.length)
+        setResumesData(result.data);
+      }
+    }
+    catch(err){
+      console.log(err)
+    }
+  }
+
+  const getAllJobs=async()=>{
+    try{
+      const allJobs=await getAllJobsApi()
+      if(allJobs.status===200){
+        setTotalJobs(allJobs.data.length)
+      }
+      console.log(allJobs)
+    }
+    catch(err){
+      console.log(err)
+    }
+  }
+
+  useEffect(() => {
+    getUsersCount()
+    getTotalResumes()
+    getAllJobs()
+    getTotalApplications()
+  },[]);
+
+  const processChartData = () => {
+    const dateMap = {};
+    const addDate = (dateStr, type) => {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return;
+      const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      if(!dateMap[key]) {
+        dateMap[key] = { name: key, signups: 0, uploads: 0, timestamp: d.setHours(0,0,0,0) };
+      }
+      dateMap[key][type]++;
+    };
+
+    usersData.forEach(user => {
+      if (user.createdAt) addDate(user.createdAt, "signups");
+    });
+    resumesData.forEach(resume => {
+      if (resume.createdAt) addDate(resume.createdAt, "uploads");
+    });
+
+    const sortedData = Object.values(dateMap).sort((a,b) => a.timestamp - b.timestamp);
+    
+    if (sortedData.length === 0) {
+      return { categories: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], signupsSeries: [0,0,0,0,0,0,0], uploadsSeries: [0,0,0,0,0,0,0] };
+    }
+
+    const categories = sortedData.map(d => d.name);
+    const signupsSeries = sortedData.map(d => d.signups);
+    const uploadsSeries = sortedData.map(d => d.uploads);
+
+    return { categories, signupsSeries, uploadsSeries };
+  };
+
+  const chartInfo = processChartData();
+
+  const chartOptions = {
+    chart: {
+      type: "spline",
+      backgroundColor: "transparent",
+      style: { fontFamily: "inherit" },
+      height: 300,
+    },
+    title: { text: null },
+    xAxis: {
+      categories: chartInfo.categories,
+      labels: { style: { color: "#94a3b8" } },
+      gridLineColor: "#334155",
+      gridLineWidth: 1,
+      gridLineDashStyle: 'Dash'
+    },
+    yAxis: {
+      title: { text: null },
+      labels: { style: { color: "#94a3b8" } },
+      gridLineColor: "#334155",
+      gridLineDashStyle: 'Dash'
+    },
+    legend: {
+      itemStyle: { color: "#cbd5e1" },
+      itemHoverStyle: { color: "#ffffff" },
+    },
+    tooltip: {
+      backgroundColor: "#0f172a",
+      borderColor: "#334155",
+      style: { color: "#f8fafc" },
+      shared: true
+    },
+    plotOptions: {
+      spline: {
+        lineWidth: 3,
+        marker: {
+          radius: 4,
+          fillColor: "#0f172a",
+          lineWidth: 2,
+          lineColor: null
+        }
+      }
+    },
+    series: [
+      { name: "Uploads", data: chartInfo.uploadsSeries, color: "#8b5cf6" },
+      { name: "Signups", data: chartInfo.signupsSeries, color: "#3b82f6" },
+    ],
+    credits: { enabled: false },
   };
 
   return (
@@ -90,21 +206,21 @@ const AdminDashboard = () => {
         <StatCardAdmin
           icon={FileText}
           title="Resumes Analyzed"
-          value="48,201"
+          value={totalResumes}
           subValue="+22%"
           colorClass="bg-purple-600"
         />
         <StatCardAdmin
           icon={Building}
           title="Active Jobs"
-          value="1,834"
+          value={totalJobs}
           subValue="+5%"
           colorClass="bg-orange-600"
         />
         <StatCardAdmin
           icon={CheckCircle2}
-          title="Successful Matches"
-          value="5,231"
+          title="Total Applications"
+          value={totalApplications}
           subValue="+18%"
           colorClass="bg-emerald-600"
         />
@@ -114,41 +230,11 @@ const AdminDashboard = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-slate-100">Growth Overview</h2>
         </div>
-        <div className="h-72 lg:h-80 w-full">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#334155"
-                opacity={0.5}
-              />
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0f172a",
-                  border: "none",
-                  borderRadius: "0.75rem",
-                  color: "#f8fafc",
-                }}
-                itemStyle={{ color: "#3b82f6" }}
-              />
-              <Line
-                type="monotone"
-                dataKey="uploads"
-                stroke="#8b5cf6"
-                strokeWidth={3}
-                dot={{ r: 4, strokeWidth: 2, fill: "#0f172a" }}
-              />
-              <Line
-                type="monotone"
-                dataKey="signups"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={{ r: 4, strokeWidth: 2, fill: "#0f172a" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="h-72 lg:h-80 w-full mt-4">
+          {(()=>{
+            const HCR = HighchartsReact.default || HighchartsReact;
+            return <HCR highcharts={Highcharts} options={chartOptions} />
+          })()}
         </div>
       </div>
 

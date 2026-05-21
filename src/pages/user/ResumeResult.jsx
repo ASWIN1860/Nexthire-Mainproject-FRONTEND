@@ -17,13 +17,15 @@ import {
 
 import { getLatestResumeApi } from "../../services/allApis";
 import base_url from "../../services/base_url";
-import { data, Link, useLocation } from "react-router-dom";
+import { data, Link, useLocation} from "react-router-dom";
 
 const ResumeResult = () => {
   const location = useLocation();
   const selectedResume = location.state?.resumeData;
   const [resumeData, setResumeData] = useState(selectedResume || {});
   const [loading, setLoading] = useState(true);
+
+
 
   // get latest resume
   const getLatestResume = async () => {
@@ -89,26 +91,29 @@ const ResumeResult = () => {
       doc.setDrawColor(226, 232, 240);
       doc.line(margin, currentY, pageWidth - margin, currentY);
 
-      // --- 2. SUMMARY CARD ---
+      // --- 2. SUMMARY CARD (WITH ALIGNMENT FIX) ---
       currentY += 10;
-      drawCard(currentY, 30);
-
+      
       doc.setFontSize(10);
       doc.setTextColor(71, 85, 105);
       doc.setFont("helvetica", "bold");
-      const uploadDate = resumeData?.createdAt
-        ? new Date(resumeData.createdAt).toLocaleDateString("en-IN")
-        : "N/A";
-      doc.text(
-        `Category: ${resumeData?.resumeCategory || "N/A"}`,
-        margin + 5,
-        currentY + 12,
-      );
-      doc.text(
-        `Experience Level: ${resumeData?.experienceLevel || "N/A"}`,
-        margin + 5,
-        currentY + 20,
-      );
+
+      let verdictText = resumeData?.finalVerdict || resumeData?.resumeCategory || "N/A";
+      const experienceText = `Experience Level: ${resumeData?.experienceAnalysis?.experienceLevel || resumeData?.experienceLevel || "N/A"}`;
+      
+      // Split verdict text to fit the card width
+      const splitVerdict = doc.splitTextToSize(`Verdict: ${verdictText}`, pageWidth - margin * 2 - 45); // Deducting space for score circle
+      
+      // Calculate dynamic height for card based on verdict length
+      const cardHeight = Math.max(30, (splitVerdict.length * 5) + 20);
+      drawCard(currentY, cardHeight);
+
+      // Render Verdict Text
+      doc.text(splitVerdict, margin + 5, currentY + 10);
+      
+      // Render Experience Level relative to the end of Verdict text
+      const experienceY = currentY + 10 + (splitVerdict.length * 5) + 2;
+      doc.text(experienceText, margin + 5, experienceY);
 
       // --- 3. ATS SCORE ---
       const score = resumeData?.score || 0;
@@ -117,14 +122,15 @@ const ResumeResult = () => {
       else if (score >= 60) scoreColor = [234, 179, 8];
 
       doc.setFillColor(...scoreColor);
-      doc.circle(pageWidth - margin - 20, currentY + 15, 12, "F");
+      // Center circle vertically within the dynamic card height
+      doc.circle(pageWidth - margin - 20, currentY + (cardHeight / 2), 12, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(12);
-      doc.text(`${score}%`, pageWidth - margin - 20, currentY + 16.5, {
+      doc.text(`${score}%`, pageWidth - margin - 20, currentY + (cardHeight / 2) + 1.5, {
         align: "center",
       });
 
-      currentY += 45;
+      currentY += cardHeight + 15;
 
       // --- 4. MATCHED SKILLS ---
       doc.setFontSize(14);
@@ -139,6 +145,10 @@ const ResumeResult = () => {
         if (skillX + textWidth > pageWidth - margin) {
           skillX = margin;
           currentY += 8;
+        }
+        if (currentY > 280) {
+          doc.addPage();
+          currentY = 20;
         }
         doc.setFillColor(220, 252, 231);
         doc.roundedRect(skillX, currentY - 4, textWidth, 6, 1, 1, "F");
@@ -161,6 +171,10 @@ const ResumeResult = () => {
           mSkillX = margin;
           currentY += 8;
         }
+        if (currentY > 280) {
+          doc.addPage();
+          currentY = 20;
+        }
         doc.setFillColor(254, 226, 226);
         doc.roundedRect(mSkillX, currentY - 4, textWidth, 6, 1, 1, "F");
         doc.setTextColor(185, 28, 28);
@@ -177,43 +191,92 @@ const ResumeResult = () => {
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
       (resumeData?.strengths || []).slice(0, 3).forEach((str) => {
+        const splitStr = doc.splitTextToSize(
+          `• ${str}`,
+          pageWidth - margin * 2,
+        );
+        if (currentY + splitStr.length * 5 > 280) {
+          doc.addPage();
+          currentY = 20;
+        }
         currentY += 6;
-        doc.text(`• ${str}`, margin + 5, currentY);
+        doc.text(splitStr, margin + 5, currentY);
+        currentY += (splitStr.length - 1) * 5;
       });
 
-      // --- 7. AI RECOMMENDATIONS ---
+      // --- 7. IMPROVEMENT SUGGESTIONS ---
       currentY += 15;
       doc.setFontSize(14);
       doc.setTextColor(30, 41, 59);
-      doc.text("AI Recommendations", margin, currentY);
+      doc.text("Improvement Suggestions", margin, currentY);
 
-      const recommendations = resumeData?.recommendations || [];
+      const suggestions = resumeData?.improvementSuggestions || [];
       doc.setFontSize(10);
       doc.setTextColor(51, 65, 85);
 
-      recommendations.forEach((text) => {
-        currentY += 8;
-        const splitText = doc.splitTextToSize(
-          text,
-          pageWidth - margin * 2 - 10,
-        );
+      if (suggestions.length > 0) {
+        suggestions.forEach((item) => {
+          const text = `${item.issue}: ${item.solution}`;
+          const splitText = doc.splitTextToSize(
+            text,
+            pageWidth - margin * 2 - 10,
+          );
 
-        doc.setFillColor(248, 250, 252);
-        doc.roundedRect(
-          margin,
-          currentY - 5,
-          pageWidth - margin * 2,
-          splitText.length * 5 + 2,
-          1,
-          1,
-          "F",
-        );
+          if (currentY + splitText.length * 5 + 10 > 280) {
+            doc.addPage();
+            currentY = 20;
+          }
 
-        doc.text(splitText, margin + 5, currentY);
-        currentY += splitText.length * 5;
-      });
+          currentY += 8;
+          doc.setFillColor(248, 250, 252);
+          doc.roundedRect(
+            margin,
+            currentY - 5,
+            pageWidth - margin * 2,
+            splitText.length * 5 + 2,
+            1,
+            1,
+            "F",
+          );
+
+          doc.text(splitText, margin + 5, currentY);
+          currentY += splitText.length * 5;
+        });
+      } else {
+        const recommendations = resumeData?.recommendations || [];
+        recommendations.forEach((text) => {
+          const splitText = doc.splitTextToSize(
+            text,
+            pageWidth - margin * 2 - 10,
+          );
+
+          if (currentY + splitText.length * 5 + 10 > 280) {
+            doc.addPage();
+            currentY = 20;
+          }
+
+          currentY += 8;
+          doc.setFillColor(248, 250, 252);
+          doc.roundedRect(
+            margin,
+            currentY - 5,
+            pageWidth - margin * 2,
+            splitText.length * 5 + 2,
+            1,
+            1,
+            "F",
+          );
+
+          doc.text(splitText, margin + 5, currentY);
+          currentY += splitText.length * 5;
+        });
+      }
 
       // --- 8. FOOTER ---
+      if (currentY > 280) {
+        doc.addPage();
+      }
+
       doc.setFontSize(9);
       doc.setTextColor(148, 163, 184);
       doc.text("Generated by NextHire AI Resume Analyzer", pageWidth / 2, 285, {
@@ -243,10 +306,12 @@ const ResumeResult = () => {
 
   // dynamic score color
 
+  const overallScore = resumeData?.score || 0;
+
   const scoreColor =
-    resumeData?.score >= 80
+    overallScore >= 80
       ? "text-green-400"
-      : resumeData?.score >= 60
+      : overallScore >= 60
         ? "text-yellow-400"
         : "text-red-400";
 
@@ -361,9 +426,9 @@ const ResumeResult = () => {
                 r="45"
                 fill="none"
                 stroke={
-                  resumeData?.score >= 80
+                  overallScore >= 80
                     ? "#4ade80"
-                    : resumeData?.score >= 60
+                    : overallScore >= 60
                       ? "#facc15"
                       : "#f87171"
                 }
@@ -371,7 +436,7 @@ const ResumeResult = () => {
                 strokeLinecap="round"
                 initial={{ strokeDasharray: "0 300" }}
                 animate={{
-                  strokeDasharray: `${((resumeData?.score || 0) / 100) * 283} 283`,
+                  strokeDasharray: `${(overallScore / 100) * 283} 283`,
                 }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
               />
@@ -379,7 +444,7 @@ const ResumeResult = () => {
 
             <div className="absolute flex flex-col items-center">
               <span className={`text-5xl font-bold ${scoreColor}`}>
-                {resumeData?.score || 0}
+                {overallScore}
               </span>
 
               <span className="text-slate-400 text-sm">/ 100</span>
@@ -405,8 +470,8 @@ const ResumeResult = () => {
           <div className="space-y-5">
             {[
               {
-                name: "Resume Score",
-                score: resumeData?.score || 0,
+                name: "Overall Score",
+                score: overallScore,
                 icon: Award,
                 color: "text-green-400",
                 bg: "bg-emerald-500/20",
@@ -547,7 +612,7 @@ const ResumeResult = () => {
 
       <div className="glass-panel p-6 rounded-3xl ">
         <h3 className="text-lg font-bold text-slate-100 mb-4 border-b border-slate-800 pb-4">
-          AI Suggestions
+          ATS Detailed Insights
         </h3>
 
         <ul className="space-y-5">
@@ -555,110 +620,170 @@ const ResumeResult = () => {
             <div className="flex-shrink-0 mt-0.5">
               <FileSearch className="w-5 h-5 text-green-400" />
             </div>
-
             <div>
               <h4 className="text-slate-200 font-medium text-sm">
-                AI RESPONSE
+                FINAL VERDICT
               </h4>
-
               <p className="text-slate-400 text-sm mt-1">
-                {resumeData?.aiResponse}
+                {resumeData?.finalVerdict ||
+                  resumeData?.resumeCategory ||
+                  resumeData?.aiResponse ||
+                  "Pending evaluation."}
               </p>
             </div>
           </li>
 
-          <li className="flex gap-5">
-            <div className="flex-shrink-0 mt-0.5">
-              <FileSearch className="w-5 h-5 text-blue-400" />
-            </div>
+          {resumeData?.atsAnalysis?.atsCompatibility && (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  ATS COMPATIBILITY
+                </h4>
+                <p className="text-slate-400 text-sm mt-1">
+                  {resumeData.atsAnalysis.atsCompatibility}
+                </p>
+              </div>
+            </li>
+          )}
 
-            <div>
-              <h4 className="text-slate-200 font-medium text-sm">STRENGTHS</h4>
+          {resumeData?.jobFitAnalysis?.technicalAlignment && (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <FileSearch className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  TECHNICAL ALIGNMENT
+                </h4>
+                <p className="text-slate-400 text-sm mt-1">
+                  {resumeData.jobFitAnalysis.technicalAlignment}
+                </p>
+              </div>
+            </li>
+          )}
 
-              <p className="text-slate-400 text-sm mt-1">
-                {resumeData?.strengths}
-              </p>
-            </div>
-          </li>
-          <li className="flex gap-5">
-            <div className="flex-shrink-0 mt-0.5">
-              <AlertTriangle className="w-5 h-5 text-yellow-400" />
-            </div>
+          {resumeData?.competitivenessAnalysis?.marketCompetitiveness && (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <Award className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  MARKET COMPETITIVENESS
+                </h4>
+                <p className="text-slate-400 text-sm mt-1">
+                  {resumeData.competitivenessAnalysis.marketCompetitiveness}
+                </p>
+              </div>
+            </li>
+          )}
 
-            <div>
-              <h4 className="text-slate-200 font-medium text-sm">WEAKNESSES</h4>
+          {resumeData?.strengths?.length > 0 && (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  STRENGTHS
+                </h4>
+                <ul className="list-disc pl-5 text-slate-400 text-sm mt-1">
+                  {Array.isArray(resumeData.strengths) ? (
+                    resumeData.strengths.map((str, idx) => (
+                      <li key={idx}>{str}</li>
+                    ))
+                  ) : (
+                    <li>{resumeData.strengths}</li>
+                  )}
+                </ul>
+              </div>
+            </li>
+          )}
 
-              <p className="text-slate-400 text-sm mt-1">
-                {resumeData?.weaknesses}
-              </p>
-            </div>
-          </li>
-          <li className="flex gap-5">
-            <div className="flex-shrink-0 mt-0.5">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-            </div>
+          {resumeData?.weaknesses?.length > 0 && (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  WEAKNESSES
+                </h4>
+                <ul className="list-disc pl-5 text-slate-400 text-sm mt-1">
+                  {Array.isArray(resumeData.weaknesses) ? (
+                    resumeData.weaknesses.map((weak, idx) => (
+                      <li key={idx}>{weak}</li>
+                    ))
+                  ) : (
+                    <li>{resumeData.weaknesses}</li>
+                  )}
+                </ul>
+              </div>
+            </li>
+          )}
 
-            <div>
-              <h4 className="text-slate-200 font-medium text-sm">
-                RECOMMENDATIONS
-              </h4>
-
-              <p className="text-slate-400 text-sm mt-1">
-                {resumeData?.recommendations}
-              </p>
-            </div>
-          </li>
-          <li className="flex gap-5">
-            <div className="flex-shrink-0 mt-0.5">
-              <FileSearch className="w-5 h-5 text-blue-400" />
-            </div>
-
-            <div>
-              <h4 className="text-slate-200 font-medium text-sm">
-                EXPERIENCE LEVEL
-              </h4>
-
-              <p className="text-slate-400 text-sm mt-1">
-                {resumeData?.experienceLevel}
-              </p>
-            </div>
-          </li>
-          <li className="flex gap-5">
-            <div className="flex-shrink-0 mt-0.5">
-              <FileSearch className="w-5 h-5 text-blue-400" />
-            </div>
-
-            <div>
-              <h4 className="text-slate-200 font-medium text-sm">CATEGORY</h4>
-
-              <p className="text-slate-400 text-sm mt-1">
-                {resumeData?.resumeCategory}
-              </p>
-            </div>
-          </li>
+          {resumeData?.improvementSuggestions?.length > 0 ? (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  IMPROVEMENT SUGGESTIONS
+                </h4>
+                <div className="space-y-3 mt-2">
+                  {resumeData.improvementSuggestions.map((suggestion, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-800/50 p-3 rounded-lg border border-slate-700"
+                    >
+                      <p className="text-slate-200 text-sm font-medium">
+                        Issue:{" "}
+                        <span className="text-slate-400 font-normal">
+                          {suggestion.issue}
+                        </span>
+                      </p>
+                      <p className="text-slate-200 text-sm font-medium mt-1">
+                        Solution:{" "}
+                        <span className="text-slate-400 font-normal">
+                          {suggestion.solution}
+                        </span>
+                      </p>
+                      {suggestion.expectedImpact && (
+                        <p className="text-slate-200 text-sm font-medium mt-1">
+                          Impact:{" "}
+                          <span className="text-emerald-400 font-normal">
+                            {suggestion.expectedImpact}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </li>
+          ) : (
+            <li className="flex gap-5">
+              <div className="flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h4 className="text-slate-200 font-medium text-sm">
+                  RECOMMENDATIONS
+                </h4>
+                <p className="text-slate-400 text-sm mt-1">
+                  {Array.isArray(resumeData?.recommendations)
+                    ? resumeData.recommendations.join(", ")
+                    : resumeData?.recommendations ||
+                      "No specific recommendations available."}
+                </p>
+              </div>
+            </li>
+          )}
         </ul>
-      </div>
-
-      {/* Footer */}
-
-      <div className="glass-card p-6 flex flex-col sm:flex-row sm:items-center justify-between text-center sm:text-left gap-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/20">
-        <div>
-          <h3 className="text-lg font-bold text-slate-100">
-            Resume Analysis Completed
-          </h3>
-
-          <p className="text-slate-400 text-sm">
-            Your resume was successfully compared with the job description.
-          </p>
-        </div>
-
-        <Link
-          to={"/resume/upload"}
-          className="btn-primary whitespace-nowrap flex items-center justify-center gap-2"
-        >
-          Continue
-          <ArrowRight className="w-4 h-4" />
-        </Link>
       </div>
     </div>
   );

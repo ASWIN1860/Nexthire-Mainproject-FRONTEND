@@ -111,18 +111,6 @@ const AdminJobs = () => {
             Add, edit, or remove job listings from the platform.
           </p>
         </div>
-
-        <div className="flex gap-3">
-          <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-
-            <input
-              type="text"
-              placeholder="Search jobs..."
-              className="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 w-64"
-            />
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

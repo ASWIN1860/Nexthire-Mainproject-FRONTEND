@@ -1,5 +1,5 @@
 import { NavLink ,useNavigate} from 'react-router-dom';
-import { LayoutDashboard, FileText, Upload, Briefcase, Settings, LogOut, Users, FileBarChart, X } from 'lucide-react';
+import { LayoutDashboard, FileText, Upload, Briefcase, Settings, LogOut, Users, FileBarChart, X, ClipboardList } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 const Sidebar = ({ isAdmin = false, isOpen, onClose }) => {
@@ -23,7 +23,7 @@ const Sidebar = ({ isAdmin = false, isOpen, onClose }) => {
     { name: 'Overview', path: '/admin/dashboard', icon: FileBarChart },
     { name: 'Manage Users', path: '/admin/users', icon: Users },
     { name: 'Manage Jobs', path: '/admin/jobs', icon: Briefcase },
-    { name: 'Settings', path: '/admin/settings', icon: Settings },
+    { name: 'Applications', path: '/admin/applications', icon: ClipboardList },
   ];
 
   const links = isAdmin ? adminLinks : userLinks;

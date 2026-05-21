@@ -67,8 +67,10 @@ const AuthPage = ({ register }) => {
           sessionStorage.setItem("token", response?.data?.token);
           sessionStorage.setItem("uname", response?.data?.username);
           sessionStorage.setItem("email", response?.data?.email);
+          sessionStorage.setItem("dp", response?.data?.profile);
           sessionStorage.setItem("bio", response?.data?.bio);
           sessionStorage.setItem("role", response?.data?.role);
+          sessionStorage.setItem("date", response?.data?.createdAt);
 
           toast.success("Signin Successful!!");
 
@@ -107,6 +109,7 @@ const AuthPage = ({ register }) => {
         sessionStorage.setItem("dp", response?.data?.profile);
         sessionStorage.setItem("bio", response?.data?.bio);
         sessionStorage.setItem("role", response?.data?.role);
+        sessionStorage.setItem("date", response?.data?.createdAt);
         toast.success("Signin Successful!!");
         if (response?.data?.role === "admin") {
           navigate("/admin/dashboard");

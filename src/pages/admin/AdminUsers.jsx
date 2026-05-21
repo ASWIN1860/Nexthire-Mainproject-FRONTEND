@@ -87,18 +87,6 @@ const AdminUsers = () => {
 
           <p className="text-slate-400 mt-1">View and manage platform users.</p>
         </div>
-
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-
-            <input
-              type="text"
-              placeholder="Search users..."
-              className="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 w-64"
-            />
-          </div>
-        </div>
       </div>
 
       <div className="glass-panel rounded-2xl overflow-hidden shadow-xl">
@@ -136,7 +124,7 @@ const AdminUsers = () => {
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-black shadow-lg">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-black shadow-lg">
                         {user.username?.charAt(0)}
                       </div>
 

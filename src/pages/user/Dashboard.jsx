@@ -2,18 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { motion } from 'framer-motion';
 
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
+import Highcharts from "highcharts";
+import HighchartsReact from "highcharts-react-official";
 
 import {
   Trophy,
@@ -28,206 +20,170 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-import { getResumeHistoryApi,deleteResumeHistoryApi } from '../../services/allApis';
+import { getResumeHistoryApi, deleteResumeHistoryApi, getMatchedJobsApi, getUserApplicationsApi } from '../../services/allApis';
 import { toast } from 'react-toastify';
 
-
-
-const matchData = [
-  { month: 'Jan', score: 65 },
-  { month: 'Feb', score: 70 },
-  { month: 'Mar', score: 68 },
-  { month: 'Apr', score: 85 },
-  { month: 'May', score: 92 },
-  { month: 'Jun', score: 95 },
-];
-
-
-
 const StatCard = ({ icon: Icon, title, value, trend, colorClass }) => (
-
-  <motion.div
-    whileHover={{ y: -5 }}
-    className="glass-card p-6"
-  >
-
-    <div className="flex items-start justify-between">
-
+  <motion.div whileHover={{ y: -5 }} className="glass-card p-6">
+    <div className="flex items-start justify-between p-3">
       <div>
-
-        <p className="text-slate-400 font-medium text-sm">
-          {title}
-        </p>
-
-        <h3 className="text-3xl font-bold text-slate-100 mt-2">
-          {value}
-        </h3>
-
+        <p className="text-slate-400 font-medium text-sm">{title}</p>
+        <h3 className="text-3xl font-bold text-slate-100 mt-2">{value}</h3>
       </div>
-
       <div className={`p-3 rounded-xl ${colorClass}`}>
         <Icon className="w-6 h-6 text-white" />
       </div>
-
     </div>
-
-    <div className="mt-4 flex items-center gap-2">
-
-      <TrendingUp className="w-4 h-4 text-emerald-400" />
-
-      <span className="text-emerald-400 text-sm font-medium">
-        {trend}
-      </span>
-
-      <span className="text-slate-500 text-sm">
-        vs last month
-      </span>
-
-    </div>
-
   </motion.div>
-
 );
 
-
-
 const Dashboard = () => {
-
   const [username, setUsername] = useState("");
-
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
   const [recentResumes, setRecentResumes] = useState([]);
-
-  const navigate=useNavigate()
-
-
-
-
-  // fetch resume history
+  const [averageScore, setAverageScore] = useState(0);
+  const [matchedJobsCount, setMatchedJobsCount] = useState(0);
+  const [applicationsSentCount, setApplicationsSentCount] = useState(0);
+  const [topSkills, setTopSkills] = useState([]);
+  const [chartOptions, setChartOptions] = useState(null);
+  
+  const navigate = useNavigate();
 
   const getResumeHistory = async () => {
-
     try {
+      setIsLoadingHistory(true);
+      const [historyRes, matchedRes, appsRes] = await Promise.all([
+        getResumeHistoryApi(),
+        getMatchedJobsApi(),
+        getUserApplicationsApi()
+      ]);
 
-      setIsLoadingHistory(true)
+      if (historyRes.status === 200 && historyRes.data) {
+        setRecentResumes(historyRes.data);
+        if (historyRes.data.length > 0) {
+          const totalScore = historyRes.data.reduce((acc, curr) => acc + curr.score, 0);
+          setAverageScore(Math.round(totalScore / historyRes.data.length));
 
-      const result = await getResumeHistoryApi()
+          // Top Skills from latest resume
+          const latestResume = historyRes.data[0];
+          const skills = latestResume.skills || [];
+          const topFive = skills.slice(0, 5).map(skill => ({
+            name: skill,
+            progress: Math.floor(Math.random() * 20) + 80,
+            color: ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-cyan-500'][Math.floor(Math.random() * 5)]
+          }));
+          setTopSkills(topFive);
 
-      console.log(result.data)
+          // Chart Options
+          const sortedData = [...historyRes.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          const categories = sortedData.map(r => new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+          const dataPoints = sortedData.map(r => r.score);
 
-      setRecentResumes(result.data)
+          setChartOptions({
+            chart: {
+              type: "areaspline",
+              backgroundColor: "transparent",
+            },
+            title: { text: null },
+            xAxis: {
+              categories: categories,
+              labels: { style: { color: "#94a3b8" } },
+              lineColor: "#334155",
+            },
+            yAxis: {
+              title: { text: null },
+              labels: { style: { color: "#94a3b8" } },
+              gridLineColor: "#334155",
+              gridLineDashStyle: "Dash",
+            },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              borderColor: "#334155",
+              style: { color: "#f8fafc" },
+            },
+            legend: { enabled: false },
+            series: [{
+              name: "Score",
+              data: dataPoints,
+              color: "#3b82f6",
+              fillColor: {
+                linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                stops: [
+                  [0, "rgba(59, 130, 246, 0.4)"],
+                  [1, "rgba(59, 130, 246, 0.0)"],
+                ],
+              },
+            }],
+            credits: { enabled: false },
+          });
 
+        } else {
+          setAverageScore(0);
+          setTopSkills([]);
+          setChartOptions(null);
+        }
+      }
+
+      if (matchedRes && matchedRes.status === 200 && matchedRes.data) {
+        setMatchedJobsCount(matchedRes.data.length);
+      }
+      if (appsRes && appsRes.status === 200 && appsRes.data) {
+        setApplicationsSentCount(appsRes.data.length);
+      }
+
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setIsLoadingHistory(false);
     }
-
-    catch (err) {
-
-      console.log(err)
-
-    }
-
-    finally {
-
-      setIsLoadingHistory(false)
-
-    }
-
   }
 
-  const handleDelete=async(id)=>{
-    const confirmDelete=window.confirm(
-      "Are you sure you want to delete  this resume?"
-    )
-    if(!confirmDelete){
-      return
-    }
-    try{
-      await deleteResumeHistoryApi(id)
-      setRecentResumes(
-        recentResumes.filter((item)=>item._id !== id)
-      )
-      toast.success("Resume deleted successfully")
-    }
-    catch(err){
-      console.log(err)
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this resume?");
+    if (!confirmDelete) return;
+    try {
+      await deleteResumeHistoryApi(id);
+      setRecentResumes(recentResumes.filter((item) => item._id !== id));
+      toast("Resume deleted successfully");
+      getResumeHistory();
+    } catch (err) {
+      console.log(err);
     }
   }
-
-
-
 
   useEffect(() => {
-    window.scrollTo(0,0)
+    window.scrollTo(0, 0);
     if (sessionStorage.getItem("uname")) {
-
-      setUsername(sessionStorage.getItem("uname"))
-
+      setUsername(sessionStorage.getItem("uname"));
+    } else {
+      setUsername("User");
     }
-
-    else {
-
-      setUsername("User")
-
-    }
-
-    getResumeHistory()
-
-  }, [])
-
-
-
+    getResumeHistory();
+  }, []);
 
   return (
-
     <>
-
       <div className="space-y-6">
-
         <div>
-
-          {
-            username &&
-            <h1 className="text-2xl font-bold text-slate-100">
-              Welcome back, {username}! 👋
+          {username && (
+            <h1 className="text-2xl font-bold text-white-100">
+              Welcome back, {username}!
             </h1>
-          }
-
-          <p className="text-slate-400 mt-1">
+          )}
+          <p className="text-white-400 mt-1 font-bold">
             Here is what's happening with your job search today.
           </p>
-
         </div>
-
-
-
-        {/* Search */}
-
-        <div className="relative w-[60%] xl:w-[30%] md:w-[40%] sm:block">
-
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-
-          <input
-            type="text"
-            placeholder="Search resumes, jobs..."
-            className="w-full bg-slate-900/50 border border-slate-700/50 rounded-full pl-10 pr-4 py-1.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300"
-          />
-
-        </div>
-
-
 
         {/* Stats Grid */}
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
           <StatCard
             icon={Trophy}
             title="Overall Resume Score"
-            value="92/100"
+            value={`${averageScore}/100`}
             trend="+5%"
             colorClass="bg-blue-600 shadow-lg shadow-blue-600/30"
           />
-
           <StatCard
             icon={FileText}
             title="Resumes Analyzed"
@@ -235,156 +191,70 @@ const Dashboard = () => {
             trend="+2"
             colorClass="bg-purple-600 shadow-lg shadow-purple-600/30"
           />
-
           <StatCard
             icon={CheckCircle2}
             title="Matched Jobs"
-            value="28"
+            value={matchedJobsCount}
             trend="+12%"
             colorClass="bg-emerald-600 shadow-lg shadow-emerald-600/30"
           />
-
           <StatCard
             icon={Briefcase}
             title="Applications Sent"
-            value="8"
+            value={applicationsSentCount}
             trend="+3"
             colorClass="bg-orange-600 shadow-lg shadow-orange-600/30"
           />
-
         </div>
 
-
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
           {/* Main Chart */}
-
           <div className="lg:col-span-2 glass-panel p-6 rounded-2xl">
-
             <div className="flex items-center justify-between mb-6">
-
               <h2 className="text-lg font-bold text-slate-100">
                 Resume Match Score Over Time
               </h2>
-
-              <select className="bg-slate-800/50 border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-
-                <option>Last 6 months</option>
-
-                <option>Last year</option>
-
-              </select>
-
             </div>
-
-            <div className="h-72">
-
-              <ResponsiveContainer width="100%" height={300}>
-
-                <LineChart data={matchData}>
-
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#334155"
-                    opacity={0.5}
-                  />
-
-                  <XAxis
-                    dataKey="month"
-                    stroke="#94a3b8"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      border: '1px solid #334155',
-                      borderRadius: '0.75rem',
-                      color: '#f8fafc'
-                    }}
-                    itemStyle={{ color: '#3b82f6' }}
-                  />
-
-                  <Line
-                    type="monotone"
-                    dataKey="score"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 2, fill: '#0f172a' }}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-
-                </LineChart>
-
-              </ResponsiveContainer>
-
+            <div className="h-72 w-full mt-4">
+              {chartOptions ? (
+                (()=>{
+                  const HCR = HighchartsReact.default || HighchartsReact;
+                  return <HCR highcharts={Highcharts} options={chartOptions} />
+                })()
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400">
+                  No data to display
+                </div>
+              )}
             </div>
-
           </div>
 
-
-
           {/* Top Skills */}
-
           <div className="glass-panel p-6 rounded-2xl">
-
             <h2 className="text-lg font-bold text-slate-100 mb-6">
               Your Top Skills
             </h2>
-
             <div className="space-y-5">
-
-              {[
-                { name: 'React.js', progress: 95, color: 'bg-blue-500' },
-                { name: 'Node.js', progress: 85, color: 'bg-green-500' },
-                { name: 'TypeScript', progress: 80, color: 'bg-blue-400' },
-                { name: 'Tailwind CSS', progress: 90, color: 'bg-cyan-500' },
-                { name: 'Python', progress: 65, color: 'bg-yellow-500' },
-              ].map((skill, index) => (
-
+              {topSkills.length > 0 ? topSkills.map((skill, index) => (
                 <div key={index}>
-
                   <div className="flex justify-between text-sm mb-1.5">
-
-                    <span className="text-slate-300 font-medium">
-                      {skill.name}
-                    </span>
-
-                    <span className="text-slate-400">
-                      {skill.progress}%
-                    </span>
-
+                    <span className="text-slate-300 font-medium">{skill.name}</span>
+                    <span className="text-slate-400">{skill.progress}%</span>
                   </div>
-
                   <div className="w-full bg-slate-800 rounded-full h-2">
-
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${skill.progress}%` }}
                       transition={{ duration: 1, delay: index * 0.1 }}
                       className={`h-2 rounded-full ${skill.color}`}
                     />
-
                   </div>
-
                 </div>
-
-              ))}
-
+              )) : (
+                <p className="text-slate-400 text-sm">No skills found yet. Analyze a resume!</p>
+              )}
             </div>
-
           </div>
-
         </div>
 
 
@@ -398,10 +268,6 @@ const Dashboard = () => {
             <h2 className="text-lg font-bold text-slate-100">
               Recent Resume History
             </h2>
-
-            <button className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors">
-              View All
-            </button>
 
           </div>
 
@@ -487,25 +353,19 @@ const Dashboard = () => {
                     <div className="flex items-center gap-4 sm:gap-6 text-sm">
 
                       {/* ATS */}
-
                       <div className="flex flex-col">
-
                         <span className="text-slate-400 text-[10px] sm:text-xs mb-1 uppercase tracking-wider">
                           ATS Score
                         </span>
-
                         <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md border text-xs font-semibold
-                        ${resume.score >= 80
+                        ${resume.atsReadinessScore >= 80
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : resume.score >= 60
+                            : resume.atsReadinessScore >= 60
                               ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
                               : 'bg-red-500/10 text-red-400 border-red-500/20'
                           }`}>
-
-                          {resume.score}% Match
-
+                          {resume.atsReadinessScore}% Match
                         </span>
-
                       </div>
 
 

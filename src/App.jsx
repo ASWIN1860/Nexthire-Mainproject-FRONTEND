@@ -10,7 +10,7 @@ import JobsPage from "./pages/jobs/JobsPage"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminUsers from "./pages/admin/AdminUsers"
 import AdminJobs from "./pages/admin/AdminJobs"
-import AdminSettings from "./pages/admin/AdminSettings"
+import AdminApplications from "./pages/admin/AdminApplications"
 
 import MainLayout from "./components/layout/MainLayout"
 import AdminLayout from "./components/layout/AdminLayout"
@@ -49,7 +49,9 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="jobs" element={<AdminJobs />} />
-            <Route path="settings" element={<AdminSettings />} />
+            <Route path="applications" element={<AdminApplications />} />
+
+            <Route path="/admin/resume-result" element={<ResumeResult />} />
           </Route>
         </Route>
 

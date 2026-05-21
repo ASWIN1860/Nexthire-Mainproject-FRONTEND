@@ -49,6 +49,30 @@ export const deleteResumeHistoryApi=async(id)=>{
     return await commonApi(`${base_url}/delete-resume/${id}`,'DELETE',{},header)
 }
 
+//apply job
+export const applyJobApi=async(data)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/apply-job`,'POST',data,header)
+}
+
+//get user applications
+export const getUserApplicationsApi=async()=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/user-applications`,'GET',{},header)
+}
+
+//get matched jobs
+export const getMatchedJobsApi=async()=>{
+     const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/matched-jobs`,'GET',"",header)
+}
+
 
 //Add skill [ADMIN]
 export const addSkillsApi=async(data)=>{
@@ -109,15 +133,40 @@ export const getResumeByUserIdApi=async(id)=>{
 //edit user [ADMIN]
 export const editUserApi=async(id,body)=>{
      const header={
-        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`,
+        "Content-Type": "application/json"
     }
     return await commonApi(`${base_url}/edit-user/${id}`,'PUT',body,header)
 }
 
-//delete user 
+//delete user [ADMIN]
 export const deleteUserApi=async(id)=>{
     const header={
         "Authorization": `Bearer ${sessionStorage.getItem('token')}`
     }
     return await commonApi(`${base_url}/delete-user/${id}`,'DELETE',id,header)
+}
+
+//getAllresume [ADMIN]
+export const getAllResumeApi=async()=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/all-resumes`,'GET',"",header)
+}
+
+//get all application [ADMIN]
+export const getAllApplicationsApi=async()=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/all-applications`,'GET',{},header)
+}
+
+//update application status [ADMIN]
+export const updateApplicationStatusApi=async(id,data)=>{
+    const header={
+        "Authorization": `Bearer ${sessionStorage.getItem('token')}`
+    }
+    return await commonApi(`${base_url}/application-status/${id}`,'PUT',data,header)
 }

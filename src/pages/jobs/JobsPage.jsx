@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import {
   MapPin,
   Briefcase,
@@ -12,302 +13,322 @@ import {
 
 import { formatDistanceToNow } from "date-fns";
 
+import { toast } from "react-toastify";
+
 import {
-  getAllJobsApi,
+  getMatchedJobsApi,
   getLatestResumeApi,
+  applyJobApi,
 } from "../../services/allApis";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState([]);
-  const [resumeSkills, setResumeSkills] = useState([]);
+
+  const [latestResume, setLatestResume] = useState(null);
+
+  // =====================================
+  // LOAD
+  // =====================================
 
   useEffect(() => {
     getJobs();
-    getResumeSkills();
+
+    getLatestResume();
   }, []);
 
-  // save button
+  // =====================================
+  // SAVE
+  // =====================================
+
   const toggleSave = (id) => {
     setJobs((prevJobs) =>
       prevJobs.map((job) =>
         job._id === id
-          ? { ...job, saved: !job.saved }
-          : job
-      )
+          ? {
+              ...job,
+              saved: !job.saved,
+            }
+          : job,
+      ),
     );
   };
 
-  // get latest resume skills
-  const getResumeSkills = async () => {
+  // =====================================
+  // GET RESUME
+  // =====================================
+
+  const getLatestResume = async () => {
     try {
       const result = await getLatestResumeApi();
 
-      console.log("RESUME RESULT :", result.data);
-
       if (result.status === 200) {
-        const skillsData = result.data.data.skills;
-
-        console.log(skillsData);
-
-        setResumeSkills(
-          typeof skillsData === "string"
-            ? skillsData
-                .split(",")
-                .map((skill) => skill.trim())
-            : skillsData || []
-        );
+        setLatestResume(result.data.data);
       }
     } catch (err) {
       console.log(err);
     }
   };
 
-  // calculate match percentage
-  const calculateMatch = (jobSkills = []) => {
-    if (!resumeSkills || resumeSkills.length === 0) {
-      return 0;
-    }
+  // =====================================
+  // GET JOBS
+  // =====================================
 
-    const matchedSkills = jobSkills.filter((skill) =>
-      resumeSkills.some(
-        (resumeSkill) =>
-          resumeSkill.toLowerCase() ===
-          skill.toLowerCase()
-      )
-    );
-
-    return Math.round(
-      (matchedSkills.length / jobSkills.length) * 100
-    );
-  };
-
-  // get jobs
   const getJobs = async () => {
     try {
-      const result = await getAllJobsApi();
-
-      if (result.status === 200) {
-        const activeJobs = result.data.filter(
-          (job) => job.status === "Active"
-        );
-
-        setJobs(activeJobs);
-      }
+      const result = await getMatchedJobsApi();
 
       console.log(result);
+
+      if (result.status === 200) {
+        setJobs(result.data);
+      }
     } catch (err) {
       console.log(err);
     }
+  };
+
+  // =====================================
+  // APPLY
+  // =====================================
+
+  const handleApply = async (jobId) => {
+    try {
+      if (!latestResume) {
+        toast.warning("Please upload resume first");
+
+        return;
+      }
+
+      const body = {
+        jobId,
+
+        resumeId: latestResume._id,
+      };
+
+      const result = await applyJobApi(body);
+
+      if (result.status === 200) {
+        toast.success("Applied Successfully");
+      } else {
+        toast.error("Already applied");
+      }
+    } catch (err) {
+      console.log(err);
+
+      toast.warning(err.response?.data?.message || "Application failed");
+    }
+  };
+
+  // =====================================
+  // LABEL
+  // =====================================
+
+  const getMatchLabel = (score) => {
+    if (score >= 90) return "Excellent Match";
+
+    if (score >= 75) return "Strong Match";
+
+    if (score >= 60) return "Moderate Match";
+
+    if (score >= 40) return "Weak Match";
+
+    return "Poor Match";
+  };
+
+  // =====================================
+  // COLOR
+  // =====================================
+
+  const getMatchColor = (score) => {
+    if (score >= 90) return "#10b981";
+
+    if (score >= 75) return "#3b82f6";
+
+    if (score >= 60) return "#eab308";
+
+    return "#ef4444";
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">
-            Recommended Jobs
-          </h1>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-100">Recommended Jobs</h1>
 
-          <p className="text-slate-400 mt-1">
-            Based on your resume analysis,
-            here are the best matches.
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-          <select className="bg-slate-900 border border-slate-700 text-slate-300 text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
-            <option>
-              Match Score: High to Low
-            </option>
-
-            <option>Date: Newest First</option>
-
-            <option>Salary: High to Low</option>
-          </select>
-
-          <button className="btn-secondary">
-            Filter
-          </button>
-        </div>
+        <p className="text-slate-400 mt-1">
+          Smart AI job matching based on your resume.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-4">
-        {jobs.map((job) => {
-          const matchPercentage =
-            calculateMatch(job.skills || []);
+      {jobs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 glass-card rounded-2xl text-center">
+          <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
+            <Briefcase className="w-8 h-8 text-slate-500" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-200 mb-2">No Jobs Available</h3>
+          <p className="text-slate-400">There are currently no recommended jobs matching your profile.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-4">
+          {jobs.map((job) => {
+            const matchPercentage = job.matchPercentage || 0;
 
-          return (
-            <div
-              key={job._id}
-              className="glass-card p-6 flex flex-col h-full group relative overflow-hidden"
-            >
-              {/* background effect */}
-              <div
-                className={`absolute top-0 right-0 w-32 h-32 blur-3xl opacity-20 -z-10 rounded-full transition-colors duration-500 ${
-                  matchPercentage >= 90
-                    ? "bg-emerald-500"
-                    : matchPercentage >= 80
-                    ? "bg-blue-500"
-                    : "bg-yellow-500"
-                }`}
-              ></div>
+            return (
+              <div key={job._id} className="glass-card p-6 flex flex-col h-full">
+                {/* TOP */}
 
-              {/* top section */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-yellow-500 border border-slate-700 flex items-center justify-center text-xl font-bold text-black">
-                    {job.title?.charAt(0)}
-                  </div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-yellow-500 flex items-center justify-center text-black font-bold">
+                      {job.title?.charAt(0)}
+                    </div>
 
-                  <div>
-                    <h3 className="font-bold text-slate-100 line-clamp-1">
-                      {job.title}
-                    </h3>
+                    <div>
+                      <h3 className="font-bold text-slate-100">{job.title}</h3>
 
-                    <div className="flex items-center gap-1.5 text-slate-400 text-sm">
-                      <Building className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1 text-sm text-slate-400">
+                        <Building className="w-4 h-4" />
 
-                      <span>{job.company}</span>
+                        {job.company}
+                      </div>
                     </div>
                   </div>
+
+                  <button onClick={() => toggleSave(job._id)}>
+                    {job.saved ? (
+                      <BookmarkCheck className="text-blue-500" />
+                    ) : (
+                      <Bookmark />
+                    )}
+                  </button>
                 </div>
 
-                <button
-                  onClick={() =>
-                    toggleSave(job._id)
-                  }
-                  className="text-slate-400 hover:text-blue-400 transition-colors p-1"
-                >
-                  {job.saved ? (
-                    <BookmarkCheck className="w-6 h-6 text-blue-500" />
-                  ) : (
-                    <Bookmark className="w-6 h-6" />
-                  )}
-                </button>
-              </div>
+                {/* INFO */}
 
-              {/* info grid */}
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                  <MapPin className="w-4 h-4 text-slate-500" />
+                <div className="space-y-3 mb-5">
+                  <div className="flex items-center gap-2 text-sm text-slate-300">
+                    <MapPin className="w-4 h-4" />
 
-                  <span className="line-clamp-1 font-bold">
                     {job.location}
-                  </span>
-                </div>
+                  </div>
 
-                <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                  <DollarSign className="w-4 h-4 text-emerald-500" />
+                  <div className="flex items-center gap-2 text-sm text-slate-300">
+                    <DollarSign className="w-4 h-4" />
 
-                  <span className="line-clamp-1 font-bold">
                     {job.salary}
-                  </span>
-                </div>
+                  </div>
 
-                <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                  <Briefcase className="w-4 h-4 text-blue-500" />
+                  <div className="flex items-center gap-2 text-sm text-slate-300">
+                    <Clock className="w-4 h-4" />
 
-                  <span className="line-clamp-1 font-bold">
-                    Job : {job.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                  <Clock className="w-4 h-4 text-purple-500" />
-
-                  <span className="line-clamp-1 font-bold">
                     {formatDistanceToNow(
                       new Date(job.createdAt),
+
                       {
                         addSuffix: true,
-                      }
+                      },
                     )}
-                  </span>
-                </div>
-              </div>
-
-              {/* skills */}
-              <div className="mb-6 flex-grow">
-                <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">
-                  Required Skills
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {(job.skills || []).map(
-                    (skill, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 bg-slate-800 text-slate-300 text-xs rounded-md border border-slate-700"
-                      >
-                        {skill}
-                      </span>
-                    )
-                  )}
+                  </div>
                 </div>
 
-                {/* description */}
-                <p className="text-xs font-medium text-slate-500 my-3 uppercase tracking-wider">
-                  Job Description
-                </p>
+                {/* MATCH */}
 
-                <div className="flex flex-wrap gap-2">
-                  <h4 className="px-2.5 py-1 bg-slate-800 text-slate-300 text-xs rounded-md">
-                    {job.description}
-                  </h4>
-                </div>
-              </div>
+                <div className="mb-5">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-slate-300 text-sm">
+                      {getMatchLabel(matchPercentage)}
+                    </span>
 
-              {/* bottom section */}
-              <div className="pt-4 border-t border-slate-800/80 mt-auto flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <svg className="w-10 h-10 transform -rotate-90">
-                      <circle
-                        cx="20"
-                        cy="20"
-                        r="16"
-                        fill="none"
-                        stroke="#1e293b"
-                        strokeWidth="4"
-                      />
-
-                      <circle
-                        cx="20"
-                        cy="20"
-                        r="16"
-                        fill="none"
-                        stroke={
-                          matchPercentage >= 90
-                            ? "#10b981"
-                            : matchPercentage >= 80
-                            ? "#3b82f6"
-                            : "#eab308"
-                        }
-                        strokeWidth="4"
-                        strokeDasharray={`${matchPercentage} 100`}
-                        className="transition-all duration-1000 ease-out"
-                      />
-                    </svg>
-
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-200">
+                    <span className="text-slate-100 font-bold">
                       {matchPercentage}%
                     </span>
                   </div>
 
-                  <span className="text-sm font-medium text-slate-400">
-                    Match Profile
-                  </span>
+                  <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-3 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${matchPercentage}%`,
+                        background: getMatchColor(matchPercentage),
+                      }}
+                    ></div>
+                  </div>
                 </div>
 
-                <button className="btn-primary py-2 px-4 shadow-none bg-slate-100 text-slate-900 hover:bg-green-600 cursor-pointer flex items-center gap-2 group-hover:bg-blue-600 group-hover:text-black transition-colors">
-                  Apply
+                {/* SKILLS */}
+
+                <div className="mb-5">
+                  <p className="text-xs text-slate-500 uppercase mb-2">
+                    Required Skills
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(job.skills || []).map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300"   
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* MISSING */}
+
+                <div className="mb-5">
+                  <p className="text-xs text-red-400 uppercase mb-2">
+                    Missing Skills
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {(job.missingSkills || [])
+
+                      .slice(0, 5)
+
+                      .map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-300"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                {/* DESCRIPTION */}
+
+                <div className="mb-6 flex-grow">
+                  <p className="text-xs text-slate-500 uppercase mb-2">
+                    Description
+                  </p>
+
+                  <p className="text-sm text-slate-300">{job.description}</p>
+                </div>
+
+                {/* APPLY */}
+
+                <button
+                  onClick={() => handleApply(job._id)}
+                  disabled={matchPercentage < 40}
+                  className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all
+
+                  ${
+                    matchPercentage >= 40
+                      ? "bg-white text-black hover:bg-green-500"
+                      : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                  }
+
+                  `}
+                >
+                  {matchPercentage >= 40 ? "Apply Now" : "Low Match"}
+
                   <ExternalLink className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

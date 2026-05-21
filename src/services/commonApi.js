@@ -13,7 +13,7 @@ const commonApi=async(reqUrl,reqMethod,reqData,reqHeader)=>{
     }
     catch(err){
         console.log(err)
-        return err.response
+        return err
     }
 }
 
