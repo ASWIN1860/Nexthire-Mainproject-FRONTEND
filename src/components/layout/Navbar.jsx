@@ -4,6 +4,67 @@ import { useEffect, useRef, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import socket from "../../socket";
 
+let audioCtx = null;
+let audioUnlocked = false;
+
+// Modern browsers block audio until the user interacts with the page.
+// This function unlocks the audio context on the first click/keypress.
+const initAudio = () => {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    audioCtx = new AudioContext();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  audioUnlocked = true;
+  
+  document.removeEventListener('click', initAudio);
+  document.removeEventListener('keydown', initAudio);
+};
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', initAudio);
+  document.addEventListener('keydown', initAudio);
+}
+
+const playNotificationSound = () => {
+  try {
+    if (!audioCtx || !audioUnlocked) return;
+
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
+    const playNote = (frequency, startTime) => {
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      // Triangle wave with high frequency is very crisp and clear
+      osc.type = 'triangle'; 
+      osc.frequency.value = frequency;
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
+      
+      osc.start(startTime);
+      osc.stop(startTime + 0.5);
+    };
+
+    const now = audioCtx.currentTime;
+    // Higher frequency notes (C6 -> E6) for better audibility
+    playNote(1046.50, now);       // C6
+    playNote(1318.51, now + 0.15); // E6
+  } catch (err) {
+    console.log("Notification sound failed", err);
+  }
+};
+
 const Navbar = ({ onMenuClick, isAdmin = false }) => {
   const [profile, setProfile] = useState("");
 
@@ -23,6 +84,7 @@ const Navbar = ({ onMenuClick, isAdmin = false }) => {
   const notificationCount = notifications.filter((n) => !n.isRead).length;
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [popupNotification, setPopupNotification] = useState(null);
 
   const notificationRef = useRef();
 
@@ -69,12 +131,19 @@ const Navbar = ({ onMenuClick, isAdmin = false }) => {
       }
 
       console.log("Notification Received :", data);
+      playNotificationSound();
 
       const newNotification = {
         ...data,
         time: new Date().toLocaleTimeString(),
         isRead: false,
       };
+
+      setPopupNotification(newNotification);
+
+      setTimeout(() => {
+        setPopupNotification(null);
+      }, 5000);
 
       setNotifications((prev) => {
         const updatedNotifications = [newNotification, ...prev].slice(0, 10);
@@ -319,6 +388,40 @@ const Navbar = ({ onMenuClick, isAdmin = false }) => {
                     <p className="text-slate-400 text-sm">No Notifications</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {/* POPUP FOR NEW NOTIFICATION ONLY */}
+          {popupNotification && !showNotifications && (
+            <div
+              className="
+                absolute
+                right-0
+                mt-3
+                w-80
+                glass-panel
+                bg-slate-900/95
+                border
+                border-blue-500/50
+                rounded-2xl
+                shadow-2xl
+                shadow-blue-500/10
+                overflow-hidden
+                z-50
+              "
+            >
+              <div className="px-4 py-3 flex items-start justify-between gap-3 bg-slate-800/30">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 shrink-0">
+                  <Bell className="w-4 h-4 animate-bounce" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-slate-200 font-medium">
+                    {popupNotification.message}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {popupNotification.time}
+                  </p>
+                </div>
               </div>
             </div>
           )}

@@ -144,7 +144,6 @@ const Dashboard = () => {
     try {
       await deleteResumeHistoryApi(id);
       setRecentResumes(recentResumes.filter((item) => item._id !== id));
-      toast("Resume deleted successfully");
       getResumeHistory();
     } catch (err) {
       console.log(err);

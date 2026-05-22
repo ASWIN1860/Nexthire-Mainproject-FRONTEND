@@ -45,7 +45,6 @@ const Profile = () => {
 
       const response = await editUserApi(decoded.id, editForm);
       if (response.status === 200) {
-        toast.success("Profile updated successfully!");
         sessionStorage.setItem("uname", editForm.username);
         sessionStorage.setItem("dp", editForm.profile);
         sessionStorage.setItem("bio", editForm.bio);

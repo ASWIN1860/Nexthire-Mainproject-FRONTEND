@@ -69,7 +69,6 @@ const ResumeUpload = () => {
       const result=await uploadResumeApi(reqBody)
       console.log(result)
       if(result.status===200){
-        toast.success("Resume uploaded successfully")
         navigate('/resume/result')
       }
     }
