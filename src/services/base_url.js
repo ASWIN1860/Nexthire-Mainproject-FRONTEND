@@ -1,4 +1,5 @@
-// const base_url="http://localhost:3000"
-const base_url="https://nexthire-mainproject-backend.onrender.com"
+const base_url = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? "http://localhost:3000"
+  : "https://nexthire-mainproject-backend.onrender.com";
 
-export default base_url
+export default base_url;
