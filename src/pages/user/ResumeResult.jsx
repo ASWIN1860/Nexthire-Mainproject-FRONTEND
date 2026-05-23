@@ -379,9 +379,11 @@ const ResumeResult = () => {
         </div>
         <a
           href={
-            resumeData?.resumeFile
-              ? `${base_url}/${resumeData.resumeFile.replace(/\\/g, "/")}`
-              : "#"
+            resumeData?.resumeFile?.startsWith("http")
+              ? resumeData.resumeFile
+              : resumeData?.resumeFile
+                ? `${base_url}/${resumeData.resumeFile.replace(/\\/g, "/")}`
+                : "#"
           }
           target="_blank"
           rel="noopener noreferrer"
