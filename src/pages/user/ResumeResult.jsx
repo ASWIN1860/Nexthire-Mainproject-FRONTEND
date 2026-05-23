@@ -612,7 +612,7 @@ const ResumeResult = () => {
 
       <div className="glass-panel p-6 rounded-3xl ">
         <h3 className="text-lg font-bold text-slate-100 mb-4 border-b border-slate-800 pb-4">
-          ATS Detailed Insights
+          AI - ATS Detailed Insights
         </h3>
 
         <ul className="space-y-5">
