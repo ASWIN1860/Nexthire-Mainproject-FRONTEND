@@ -122,7 +122,7 @@ const Navbar = ({ onMenuClick, isAdmin = false }) => {
         }
       }
 
-      if (data.targetRole && data.targetRole !== currentRole) {
+      if (data.targetRole && (!currentRole || data.targetRole.toLowerCase() !== currentRole.toLowerCase())) {
         return; // Skip if role doesn't match
       }
 
